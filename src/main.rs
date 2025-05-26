@@ -60,14 +60,26 @@ impl Calendar {
 
     fn show(&self) {
         let days_order = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
-        let day_colors = ["red", "blue", "green", "yellow", "magenta", "cyan", "white"];
+        // Custom mapping so Monday is green and Wednesday is red
+let custom_colored_days = [
+    ("monday", "green"),
+    ("tuesday", "blue"),
+    ("wednesday", "red"),
+    ("thursday", "yellow"),
+    ("friday", "magenta"),
+    ("saturday", "cyan"),
+    ("sunday", "white")
+];
         
         println!("{}", "Weekly Calendar:".bold().bright_blue());
         println!("{}", "================".bright_blue());
         
-        for (i, day) in days_order.iter().enumerate() {
-            let color = day_colors[i % day_colors.len()];
+        for day in days_order {
             let day_name = capitalize_first(day);
+            let color = custom_colored_days.iter()
+                .find(|(d, _)| *d == day)
+                .map(|(_, c)| *c)
+                .unwrap_or("white");
             
             println!();
             match color {
@@ -80,7 +92,7 @@ impl Calendar {
                 _ => println!("{}:", day_name.bright_white().bold()),
             }
             
-            if let Some(items) = self.days.get(*day) {
+            if let Some(items) = self.days.get(day) {
                 if items.is_empty() {
                     println!("  {}", "(no items)".dimmed());
                 } else {
