@@ -88,7 +88,19 @@ fn get_calendar_path() -> PathBuf {
 }
 
 fn normalize_day(day: &str) -> String {
-    day.to_lowercase()
+    let day = day.to_lowercase();
+    
+    // Handle shorthand day names
+    match day.as_str() {
+        "m" => "monday".to_string(),
+        "t" => "tuesday".to_string(),
+        "w" => "wednesday".to_string(),
+        "th" => "thursday".to_string(),
+        "f" => "friday".to_string(),
+        "sa" | "s" => "saturday".to_string(),
+        "su" => "sunday".to_string(),
+        _ => day
+    }
 }
 
 fn capitalize_first(s: &str) -> String {
