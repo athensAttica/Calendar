@@ -26,6 +26,12 @@ enum Commands {
     },
     /// Show all items for the week
     Show,
+    /// Clear all items from a specific day
+    Clear {
+        /// Day of the week
+        #[arg(short, long)]
+        day: String,
+    },
 }
 
 #[derive(Serialize, Deserialize, Default)]
@@ -56,6 +62,11 @@ impl Calendar {
     fn add_item(&mut self, day: &str, item: &str) {
         let day = normalize_day(day);
         self.days.entry(day).or_insert_with(Vec::new).push(item.to_string());
+    }
+
+    fn clear_day(&mut self, day: &str) {
+        let day = normalize_day(day);
+        self.days.insert(day, Vec::new());
     }
 
     fn show(&self) {
@@ -155,6 +166,15 @@ fn main() {
         }
         Commands::Show => {
             calendar.show();
+        }
+        Commands::Clear { day } => {
+            calendar.clear_day(&day);
+            calendar.save();
+            println!("{} {} {}", 
+                "Cleared all items from".yellow().bold(),
+                capitalize_first(&normalize_day(&day)).bright_cyan().bold(),
+                "successfully".yellow().bold()
+            );
         }
     }
 }
