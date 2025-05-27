@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
+use chrono::{DateTime, Utc};
 
 #[derive(Parser)]
 #[command(name = "calendar")]
@@ -32,6 +33,8 @@ enum Commands {
         #[arg(short, long)]
         day: String,
     },
+    /// Archive the current week and clear all items
+    ArchiveWeek,
 }
 
 #[derive(Serialize, Deserialize, Default)]
@@ -118,11 +121,44 @@ let custom_colored_days = [
     }
 }
 
+#[derive(Serialize, Deserialize, Default)]
+struct ArchivedWeek {
+    timestamp: String, // ISO 8601 string
+    week: HashMap<String, Vec<String>>, // days -> items
+}
+
 fn get_calendar_path() -> PathBuf {
     let mut path = dirs::home_dir().unwrap_or_else(|| PathBuf::from("."));
     path.push(".calendar");
     path.push("calendar.json");
     path
+}
+
+fn get_archive_path() -> PathBuf {
+    let mut path = dirs::home_dir().unwrap_or_else(|| PathBuf::from("."));
+    path.push(".calendar");
+    path.push("archive.json");
+    path
+}
+
+fn archive_week(week: &Calendar) {
+    let archive_path = get_archive_path();
+    let mut archives: Vec<ArchivedWeek> = if archive_path.exists() {
+        let content = fs::read_to_string(&archive_path).unwrap_or_default();
+        serde_json::from_str(&content).unwrap_or_default()
+    } else {
+        Vec::new()
+    };
+    let now: DateTime<Utc> = Utc::now();
+    archives.push(ArchivedWeek {
+        timestamp: now.to_rfc3339(),
+        week: week.days.clone(),
+    });
+    if let Some(parent) = archive_path.parent() {
+        let _ = fs::create_dir_all(parent);
+    }
+    let data = serde_json::to_string_pretty(&archives).unwrap();
+    let _ = fs::write(&archive_path, data);
 }
 
 fn normalize_day(day: &str) -> String {
@@ -175,6 +211,12 @@ fn main() {
                 capitalize_first(&normalize_day(&day)).bright_cyan().bold(),
                 "successfully".yellow().bold()
             );
+        }
+        Commands::ArchiveWeek => {
+            archive_week(&calendar);
+            calendar.days.clear();
+            calendar.save();
+            println!("{}", "Week archived and cleared successfully".green().bold());
         }
     }
 }
