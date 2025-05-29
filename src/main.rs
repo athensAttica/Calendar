@@ -35,11 +35,44 @@ enum Commands {
     },
     /// Archive the current week and clear all items
     ArchiveWeek,
+    /// Mark a task as completed
+    Complete {
+        /// Day of the week
+        #[arg(short, long)]
+        day: String,
+        /// Index of the task (starting from 1)
+        #[arg(short, long)]
+        index: usize,
+    },
+    /// Mark a task as uncompleted
+    Uncomplete {
+        /// Day of the week
+        #[arg(short, long)]
+        day: String,
+        /// Index of the task (starting from 1)
+        #[arg(short, long)]
+        index: usize,
+    },
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+struct Task {
+    description: String,
+    completed: bool,
+}
+
+impl Task {
+    fn new(description: String) -> Self {
+        Task {
+            description,
+            completed: false,
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Default)]
 struct Calendar {
-    days: HashMap<String, Vec<String>>,
+    days: HashMap<String, Vec<Task>>,
 }
 
 impl Calendar {
@@ -64,12 +97,34 @@ impl Calendar {
 
     fn add_item(&mut self, day: &str, item: &str) {
         let day = normalize_day(day);
-        self.days.entry(day).or_insert_with(Vec::new).push(item.to_string());
+        self.days.entry(day).or_insert_with(Vec::new).push(Task::new(item.to_string()));
     }
 
     fn clear_day(&mut self, day: &str) {
         let day = normalize_day(day);
         self.days.insert(day, Vec::new());
+    }
+
+    fn complete_task(&mut self, day: &str, index: usize) -> bool {
+        let day = normalize_day(day);
+        if let Some(tasks) = self.days.get_mut(&day) {
+            if index > 0 && index <= tasks.len() {
+                tasks[index - 1].completed = true;
+                return true;
+            }
+        }
+        false
+    }
+
+    fn uncomplete_task(&mut self, day: &str, index: usize) -> bool {
+        let day = normalize_day(day);
+        if let Some(tasks) = self.days.get_mut(&day) {
+            if index > 0 && index <= tasks.len() {
+                tasks[index - 1].completed = false;
+                return true;
+            }
+        }
+        false
     }
 
     fn show(&self) {
@@ -106,13 +161,23 @@ let custom_colored_days = [
                 _ => println!("{}:", day_name.bright_white().bold()),
             }
             
-            if let Some(items) = self.days.get(day) {
-                if items.is_empty() {
+            if let Some(tasks) = self.days.get(day) {
+                if tasks.is_empty() {
                     println!("  {}", "(no items)".dimmed());
                 } else {
-                    for item in items {
-                        println!("  {} {}", "•".green(), item);
+                    for (i, task) in tasks.iter().enumerate() {
+                        let index = i + 1;
+                        if task.completed {
+                            println!("  {} {}: {}", "✓".green(), index, task.description.strikethrough().dimmed());
+                        } else {
+                            println!("  {} {}: {}", "•".yellow(), index, task.description);
+                        }
                     }
+                    
+                    // Display completion summary
+                    let completed = tasks.iter().filter(|t| t.completed).count();
+                    let total = tasks.len();
+                    println!("  {} {}/{} completed", "→".bright_blue(), completed, total);
                 }
             } else {
                 println!("  {}", "(no items)".dimmed());
@@ -124,7 +189,7 @@ let custom_colored_days = [
 #[derive(Serialize, Deserialize, Default)]
 struct ArchivedWeek {
     timestamp: String, // ISO 8601 string
-    week: HashMap<String, Vec<String>>, // days -> items
+    week: HashMap<String, Vec<Task>>, // days -> tasks
 }
 
 fn get_calendar_path() -> PathBuf {
@@ -217,6 +282,42 @@ fn main() {
             calendar.days.clear();
             calendar.save();
             println!("{}", "Week archived and cleared successfully".green().bold());
+        }
+        Commands::Complete { day, index } => {
+            if calendar.complete_task(&day, index) {
+                calendar.save();
+                println!("{} {} {} {}", 
+                    "Marked task".green().bold(),
+                    index.to_string().bright_white(),
+                    "as completed on".green(),
+                    capitalize_first(&normalize_day(&day)).bright_cyan().bold()
+                );
+            } else {
+                println!("{} {} {} {}", 
+                    "Could not find task".red().bold(),
+                    index.to_string().bright_white(),
+                    "on".red(),
+                    capitalize_first(&normalize_day(&day)).bright_cyan().bold()
+                );
+            }
+        }
+        Commands::Uncomplete { day, index } => {
+            if calendar.uncomplete_task(&day, index) {
+                calendar.save();
+                println!("{} {} {} {}", 
+                    "Marked task".green().bold(),
+                    index.to_string().bright_white(),
+                    "as uncompleted on".green(),
+                    capitalize_first(&normalize_day(&day)).bright_cyan().bold()
+                );
+            } else {
+                println!("{} {} {} {}", 
+                    "Could not find task".red().bold(),
+                    index.to_string().bright_white(),
+                    "on".red(),
+                    capitalize_first(&normalize_day(&day)).bright_cyan().bold()
+                );
+            }
         }
     }
 }
