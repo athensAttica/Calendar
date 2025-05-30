@@ -24,6 +24,9 @@ enum Commands {
         /// Item to add
         #[arg(short, long)]
         item: String,
+        /// Location where the task will happen (optional)
+        #[arg(short, long)]
+        location: Option<String>,
     },
     /// Show all items for the week
     Show,
@@ -37,9 +40,21 @@ enum Commands {
     ArchiveWeek,
 }
 
+#[derive(Serialize, Deserialize, Clone)]
+struct Task {
+    description: String,
+    location: Option<String>,
+}
+
+impl Task {
+    fn new(description: String, location: Option<String>) -> Self {
+        Task { description, location }
+    }
+}
+
 #[derive(Serialize, Deserialize, Default)]
 struct Calendar {
-    days: HashMap<String, Vec<String>>,
+    days: HashMap<String, Vec<Task>>,
 }
 
 impl Calendar {
@@ -62,9 +77,10 @@ impl Calendar {
         fs::write(&path, content).ok();
     }
 
-    fn add_item(&mut self, day: &str, item: &str) {
+    fn add_item(&mut self, day: &str, item: &str, location: Option<String>) {
         let day = normalize_day(day);
-        self.days.entry(day).or_insert_with(Vec::new).push(item.to_string());
+        let task = Task::new(item.to_string(), location);
+        self.days.entry(day).or_insert_with(Vec::new).push(task);
     }
 
     fn clear_day(&mut self, day: &str) {
@@ -106,12 +122,16 @@ let custom_colored_days = [
                 _ => println!("{}:", day_name.bright_white().bold()),
             }
             
-            if let Some(items) = self.days.get(day) {
-                if items.is_empty() {
+            if let Some(tasks) = self.days.get(day) {
+                if tasks.is_empty() {
                     println!("  {}", "(no items)".dimmed());
                 } else {
-                    for item in items {
-                        println!("  {} {}", "•".green(), item);
+                    for task in tasks {
+                        if let Some(location) = &task.location {
+                            println!("  {} {} {}", "•".green(), task.description, format!("(at {})", location).dimmed());
+                        } else {
+                            println!("  {} {}", "•".green(), task.description);
+                        }
                     }
                 }
             } else {
@@ -124,7 +144,7 @@ let custom_colored_days = [
 #[derive(Serialize, Deserialize, Default)]
 struct ArchivedWeek {
     timestamp: String, // ISO 8601 string
-    week: HashMap<String, Vec<String>>, // days -> items
+    week: HashMap<String, Vec<Task>>, // days -> tasks
 }
 
 fn get_calendar_path() -> PathBuf {
@@ -190,12 +210,20 @@ fn main() {
     let mut calendar = Calendar::load();
 
     match cli.command {
-        Commands::Add { day, item } => {
-            calendar.add_item(&day, &item);
+        Commands::Add { day, item, location } => {
+            let location_msg = if let Some(loc) = &location {
+                format!(" at {}", loc)
+            } else {
+                String::new()
+            };
+            
+            calendar.add_item(&day, &item, location);
             calendar.save();
-            println!("{} '{}' {} {}", 
+            
+            println!("{} '{}{}' {} {}", 
                 "Added".green().bold(), 
-                item.bright_white(), 
+                item.bright_white(),
+                location_msg.dimmed(),
                 "to".green(), 
                 capitalize_first(&normalize_day(&day)).bright_cyan().bold()
             );
