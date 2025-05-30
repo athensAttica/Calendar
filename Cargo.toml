@@ -3,6 +3,14 @@ name = "calendar"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+name = "calendar_app"
+path = "src/lib.rs"
+
+[[bin]]
+name = "calendar"
+path = "src/main.rs"
+
 [dependencies]
 clap = { version = "4.0", features = ["derive"] }
 serde = { version = "1.0", features = ["derive"] }
