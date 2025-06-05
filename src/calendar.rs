@@ -92,9 +92,9 @@ impl Calendar {
                 } else {
                     for task in tasks {
                         if let Some(location) = &task.location {
-                            println!("  {} {} {}", "•".green(), task.description, format!("(at {})", location).dimmed());
+                            println!("  {} {} {}", "•".green(), task.description.bright_yellow(), format!("(at {})", location).dimmed());
                         } else {
-                            println!("  {} {}", "•".green(), task.description);
+                            println!("  {} {}", "•".green(), task.description.bright_yellow());
                         }
                     }
                 }
