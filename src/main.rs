@@ -22,7 +22,7 @@ fn main() {
             
             println!("{} '{}{}' {} {}", 
                 "Added".green().bold(), 
-                item.bright_white(),
+                item.bright_yellow(), // Changed to bright_yellow for user-added items
                 location_msg.dimmed(),
                 "to".green(), 
                 capitalize_first(&normalize_day(&day)).bright_cyan().bold()
