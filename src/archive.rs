@@ -11,7 +11,7 @@ pub struct ArchivedWeek {
     pub week: HashMap<String, Vec<Task>>, // days -> tasks
 }
 
-pub fn archive_week(week: &Calendar) {
+pub fn archive_week(week: &Calendar) -> Vec<(String, Vec<Task>)> {
     let archive_path = get_archive_path();
     let mut archives: Vec<ArchivedWeek> = if archive_path.exists() {
         let content = fs::read_to_string(&archive_path).unwrap_or_default();
@@ -29,4 +29,19 @@ pub fn archive_week(week: &Calendar) {
     }
     let data = serde_json::to_string_pretty(&archives).unwrap();
     let _ = fs::write(&archive_path, data);
+    
+    // Collect recurring tasks to be preserved
+    let mut recurring_tasks = Vec::new();
+    for (day, tasks) in &week.days {
+        let recurring = tasks.iter()
+            .filter(|task| task.recurring)
+            .cloned()
+            .collect::<Vec<_>>();
+        
+        if !recurring.is_empty() {
+            recurring_tasks.push((day.clone(), recurring));
+        }
+    }
+    
+    recurring_tasks
 }

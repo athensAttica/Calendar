@@ -10,20 +10,27 @@ fn main() {
     let mut calendar = Calendar::load();
 
     match cli.command {
-        Commands::Add { day, item, location } => {
+        Commands::Add { day, item, location, recurring } => {
             let location_msg = if let Some(loc) = &location {
                 format!(" at {}", loc)
             } else {
                 String::new()
             };
             
-            calendar.add_item(&day, &item, location);
+            let recurring_msg = if recurring {
+                " (recurring weekly)".bright_green()
+            } else {
+                "".normal()
+            };
+            
+            calendar.add_item(&day, &item, location, recurring);
             calendar.save();
             
-            println!("{} '{}{}' {} {}", 
+            println!("{} '{}{}'{} {} {}", 
                 "Added".green().bold(), 
                 item.bright_white(),
                 location_msg.dimmed(),
+                recurring_msg,
                 "to".green(), 
                 capitalize_first(&normalize_day(&day)).bright_cyan().bold()
             );
@@ -41,10 +48,20 @@ fn main() {
             );
         }
         Commands::ArchiveWeek => {
-            archive_week(&calendar);
+            let recurring_tasks = archive_week(&calendar);
             calendar.days.clear();
+            
+            // Re-add recurring tasks
+            for (day, tasks) in recurring_tasks {
+                for task in tasks {
+                    calendar.days.entry(day.clone())
+                        .or_insert_with(Vec::new)
+                        .push(task);
+                }
+            }
+            
             calendar.save();
-            println!("{}", "Week archived and cleared successfully".green().bold());
+            println!("{}", "Week archived and cleared successfully (recurring tasks preserved)".green().bold());
         }
     }
 }
