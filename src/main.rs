@@ -1,7 +1,7 @@
-use calendar_app::cli::{Cli, Commands};
-use calendar_app::calendar::Calendar;
 use calendar_app::archive::archive_week;
-use calendar_app::utils::{normalize_day, capitalize_first};
+use calendar_app::calendar::Calendar;
+use calendar_app::cli::{Cli, Commands};
+use calendar_app::utils::{capitalize_first, normalize_day};
 use clap::Parser;
 use colored::*;
 
@@ -10,24 +10,30 @@ fn main() {
     let mut calendar = Calendar::load();
 
     match cli.command {
-        Commands::Add { day, item, location, recurring } => {
+        Commands::Add {
+            day,
+            item,
+            location,
+            recurring,
+        } => {
             let location_msg = if let Some(loc) = &location {
                 format!(" at {}", loc)
             } else {
                 String::new()
             };
-            
+
             let recurring_msg = if recurring { " (recurring weekly)" } else { "" };
-            
+
             calendar.add_item(&day, &item, location, recurring);
             calendar.save();
-            
-            println!("{} '{}{}'{} {} {}", 
-                "Added".green().bold(), 
+
+            println!(
+                "{} '{}{}'{} {} {}",
+                "Added".green().bold(),
                 item.bright_white(),
                 location_msg.dimmed(),
                 recurring_msg.bright_cyan(),
-                "to".green(), 
+                "to".green(),
                 capitalize_first(&normalize_day(&day)).bright_cyan().bold()
             );
         }
@@ -37,7 +43,8 @@ fn main() {
         Commands::Clear { day } => {
             calendar.clear_day(&day);
             calendar.save();
-            println!("{} {} {}", 
+            println!(
+                "{} {} {}",
                 "Cleared all items from".yellow().bold(),
                 capitalize_first(&normalize_day(&day)).bright_cyan().bold(),
                 "successfully".yellow().bold()
@@ -46,16 +53,22 @@ fn main() {
         Commands::ArchiveWeek => {
             let recurring_tasks = archive_week(&calendar);
             calendar.days.clear();
-            
+
             // Re-add recurring tasks for next week
             for (day, task) in recurring_tasks {
-                calendar.days.entry(day).or_insert_with(Vec::new).push(task);
+                calendar.days.entry(day).or_default().push(task);
             }
-            
+
             calendar.save();
-            println!("{}", "Week archived and cleared successfully".green().bold());
+            println!(
+                "{}",
+                "Week archived and cleared successfully".green().bold()
+            );
             if !calendar.days.is_empty() {
-                println!("{}", "Recurring tasks preserved for next week".bright_cyan());
+                println!(
+                    "{}",
+                    "Recurring tasks preserved for next week".bright_cyan()
+                );
             }
         }
     }

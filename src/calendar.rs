@@ -1,8 +1,8 @@
+use crate::utils::{capitalize_first, get_calendar_path, normalize_day};
+use colored::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
-use colored::*;
-use crate::utils::{get_calendar_path, normalize_day, capitalize_first};
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Task {
@@ -13,7 +13,11 @@ pub struct Task {
 
 impl Task {
     pub fn new(description: String, location: Option<String>, recurring: bool) -> Self {
-        Task { description, location, recurring }
+        Task {
+            description,
+            location,
+            recurring,
+        }
     }
 }
 
@@ -45,7 +49,7 @@ impl Calendar {
     pub fn add_item(&mut self, day: &str, item: &str, location: Option<String>, recurring: bool) {
         let day = normalize_day(day);
         let task = Task::new(item.to_string(), location, recurring);
-        self.days.entry(day).or_insert_with(Vec::new).push(task);
+        self.days.entry(day).or_default().push(task);
     }
 
     pub fn clear_day(&mut self, day: &str) {
@@ -54,7 +58,15 @@ impl Calendar {
     }
 
     pub fn show(&self) {
-        let days_order = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+        let days_order = [
+            "monday",
+            "tuesday",
+            "wednesday",
+            "thursday",
+            "friday",
+            "saturday",
+            "sunday",
+        ];
         // Custom mapping so Monday is green and Wednesday is red
         let custom_colored_days = [
             ("monday", "green"),
@@ -63,19 +75,20 @@ impl Calendar {
             ("thursday", "yellow"),
             ("friday", "magenta"),
             ("saturday", "cyan"),
-            ("sunday", "white")
+            ("sunday", "white"),
         ];
-        
+
         println!("{}", "Weekly Calendar:".bold().bright_blue());
         println!("{}", "================".bright_blue());
-        
+
         for day in days_order {
             let day_name = capitalize_first(day);
-            let color = custom_colored_days.iter()
+            let color = custom_colored_days
+                .iter()
                 .find(|(d, _)| *d == day)
                 .map(|(_, c)| *c)
                 .unwrap_or("white");
-            
+
             println!();
             match color {
                 "red" => println!("{}:", day_name.bright_red().bold()),
@@ -86,7 +99,7 @@ impl Calendar {
                 "cyan" => println!("{}:", day_name.bright_cyan().bold()),
                 _ => println!("{}:", day_name.bright_white().bold()),
             }
-            
+
             if let Some(tasks) = self.days.get(day) {
                 if tasks.is_empty() {
                     println!("  {}", "(no items)".dimmed());
@@ -94,9 +107,20 @@ impl Calendar {
                     for task in tasks {
                         let recurring_indicator = if task.recurring { " 🔄" } else { "" };
                         if let Some(location) = &task.location {
-                            println!("  {} {}{} {}", "•".green(), task.description.bright_yellow(), recurring_indicator.bright_cyan(), format!("(at {})", location).dimmed());
+                            println!(
+                                "  {} {}{} {}",
+                                "•".green(),
+                                task.description.bright_yellow(),
+                                recurring_indicator.bright_cyan(),
+                                format!("(at {})", location).dimmed()
+                            );
                         } else {
-                            println!("  {} {}{}", "•".green(), task.description.bright_yellow(), recurring_indicator.bright_cyan());
+                            println!(
+                                "  {} {}{}",
+                                "•".green(),
+                                task.description.bright_yellow(),
+                                recurring_indicator.bright_cyan()
+                            );
                         }
                     }
                 }

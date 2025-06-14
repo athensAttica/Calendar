@@ -13,6 +13,8 @@ jobs:
     
     - name: Install Rust
       uses: dtolnay/rust-toolchain@stable
+      with:
+        components: rustfmt, clippy
     
     - name: Cache cargo dependencies
       uses: actions/cache@v3
@@ -25,5 +27,14 @@ jobs:
           target/
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
     
+    - name: Check formatting
+      run: cargo fmt -- --check
+    
     - name: Run cargo check
       run: cargo check
+    
+    - name: Run clippy
+      run: cargo clippy -- -D warnings
+    
+    - name: Run tests
+      run: cargo test

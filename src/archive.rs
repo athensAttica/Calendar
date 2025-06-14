@@ -1,13 +1,13 @@
+use crate::calendar::{Calendar, Task};
+use crate::utils::get_archive_path;
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
-use chrono::{DateTime, Utc};
-use crate::calendar::{Calendar, Task};
-use crate::utils::get_archive_path;
 
 #[derive(Serialize, Deserialize, Default)]
 pub struct ArchivedWeek {
-    pub timestamp: String, // ISO 8601 string
+    pub timestamp: String,                // ISO 8601 string
     pub week: HashMap<String, Vec<Task>>, // days -> tasks
 }
 
@@ -29,7 +29,7 @@ pub fn archive_week(calendar: &Calendar) -> Vec<(String, Task)> {
     }
     let data = serde_json::to_string_pretty(&archives).unwrap();
     let _ = fs::write(&archive_path, data);
-    
+
     // Collect recurring tasks to keep for next week
     let mut recurring_tasks: Vec<(String, Task)> = Vec::new();
     for (day, tasks) in &calendar.days {
@@ -39,6 +39,6 @@ pub fn archive_week(calendar: &Calendar) -> Vec<(String, Task)> {
             }
         }
     }
-    
+
     recurring_tasks
 }
