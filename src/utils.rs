@@ -16,7 +16,7 @@ pub fn get_archive_path() -> PathBuf {
 
 pub fn normalize_day(day: &str) -> String {
     let day = day.to_lowercase();
-    
+
     // Handle shorthand day names
     match day.as_str() {
         "m" => "monday".to_string(),
@@ -26,7 +26,7 @@ pub fn normalize_day(day: &str) -> String {
         "f" => "friday".to_string(),
         "sa" | "s" => "saturday".to_string(),
         "su" => "sunday".to_string(),
-        _ => day
+        _ => day,
     }
 }
 
