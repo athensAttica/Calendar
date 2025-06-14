@@ -21,6 +21,9 @@ pub enum Commands {
         /// Location where the task will happen (optional)
         #[arg(short, long)]
         location: Option<String>,
+        /// Mark task as recurring weekly
+        #[arg(short, long)]
+        recurring: bool,
     },
     /// Show all items for the week
     Show,

@@ -8,11 +8,12 @@ use crate::utils::{get_calendar_path, normalize_day, capitalize_first};
 pub struct Task {
     pub description: String,
     pub location: Option<String>,
+    pub recurring: bool,
 }
 
 impl Task {
-    pub fn new(description: String, location: Option<String>) -> Self {
-        Task { description, location }
+    pub fn new(description: String, location: Option<String>, recurring: bool) -> Self {
+        Task { description, location, recurring }
     }
 }
 
@@ -41,9 +42,9 @@ impl Calendar {
         fs::write(&path, content).ok();
     }
 
-    pub fn add_item(&mut self, day: &str, item: &str, location: Option<String>) {
+    pub fn add_item(&mut self, day: &str, item: &str, location: Option<String>, recurring: bool) {
         let day = normalize_day(day);
-        let task = Task::new(item.to_string(), location);
+        let task = Task::new(item.to_string(), location, recurring);
         self.days.entry(day).or_insert_with(Vec::new).push(task);
     }
 
@@ -91,10 +92,11 @@ impl Calendar {
                     println!("  {}", "(no items)".dimmed());
                 } else {
                     for task in tasks {
+                        let recurring_indicator = if task.recurring { " 🔄" } else { "" };
                         if let Some(location) = &task.location {
-                            println!("  {} {} {}", "•".green(), task.description.bright_yellow(), format!("(at {})", location).dimmed());
+                            println!("  {} {}{} {}", "•".green(), task.description.bright_yellow(), recurring_indicator.bright_cyan(), format!("(at {})", location).dimmed());
                         } else {
-                            println!("  {} {}", "•".green(), task.description.bright_yellow());
+                            println!("  {} {}{}", "•".green(), task.description.bright_yellow(), recurring_indicator.bright_cyan());
                         }
                     }
                 }
